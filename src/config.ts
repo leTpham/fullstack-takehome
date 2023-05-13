@@ -1,0 +1,1 @@
+export const USER_BATCH_SIZE = 10;
