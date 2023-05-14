@@ -32,6 +32,8 @@
 
     if (data && data.users.length > 0) {
       users = [...users, ...data.users];
+	  console.log("users", users)
+	  console.log("data", data)
     }
   };
 
@@ -45,21 +47,27 @@
 
 </script>
 
+<style>
+.container {
+	height: 100vh;
+	overflow:scroll;
+}
+</style>
+
 <div class="w-full h-full overflow-scroll">
-  <div class="flex flex-col gap-4 items-center p-4">
+  <div class="flex flex-col gap-4 items-center p-4 container">
     {#if users.length === 0}
       <Loader />
     {:else}
       {#each users as user (user.id)}
         <User {user} />
       {/each}
+
       <InfiniteScroll
-        elementScroll={window}
         threshold={100}
         hasMore={true}
         on:loadMore={nextBatch}
       />
     {/if}
-    <button on:click={nextBatch}>Next page</button>
   </div>
 </div>
