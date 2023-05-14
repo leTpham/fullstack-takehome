@@ -16,8 +16,9 @@ const yogaApp = createYoga<RequestEvent>({
 				users: (source, args, context, info) => {
 					const { first = USER_BATCH_SIZE, after} = args;
 
-					const startIdx = after ? parseInt(after, 10) : 0;
+					const startIdx = after !== 0 ? parseInt(after, 10) : 0;
 					const paginatedUsers = users.slice(startIdx, startIdx + first)
+					console.log("paginated users", paginatedUsers)
 					return paginatedUsers
 				}
 			}
