@@ -6,5 +6,5 @@ type User {
 }
 
 type Query {
-	users(first:Int, after: String): [User]
+	users(first:Int, after: String, name: String): [User]
 }
