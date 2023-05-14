@@ -67,13 +67,17 @@
 <div class="w-full h-full overflow-scroll">
   <div class="flex flex-col gap-4 items-center p-4 h-full w-full overflow-scroll">
     {#if users.length === 0}
-      <Loader />
-    {:else}
+		<div class="flex items-center justify-center">
+			<Loader />
+		</div>
+	{:else}
       {#each users as user (user.id)}
         <User {user} key={user.id} />
       {/each}
       {#if isLoading}
-        <Loader />
+        <div class="flex items-center justify-center">
+			<Loader />
+		</div>
       {:else if hasMore}
         <InfiniteScroll
           threshold={100}
