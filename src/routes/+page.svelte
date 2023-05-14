@@ -1,37 +1,65 @@
 <script lang="ts">
-	import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
-	import Loader from 'components/Loader.svelte';
-	import User from 'components/User.svelte';
-	import type { UserType } from 'lib/types';
+  import { cacheExchange, createClient, fetchExchange, gql } from '@urql/svelte';
+  import { onMount } from 'svelte';
 
-	const client = createClient({
-		url: '/graphql',
-		exchanges: [cacheExchange, fetchExchange]
-	});
+  import Loader from 'components/Loader.svelte';
+  import User from 'components/User.svelte';
+  import type { UserType } from 'lib/types';
 
-	const result = queryStore<{ users: UserType[] }>({
-		client,
-		query: gql`
-			query {
-				users {
-					id
-					name
-					avatar
-					email
-				}
-			}
-		`
-	});
+  import InfiniteScroll from './InfiniteScroll.svelte';
+
+  const client = createClient({
+    url: '/graphql',
+    exchanges: [cacheExchange, fetchExchange]
+  });
+
+  let after = 0;
+  let users: UserType[] = [];
+
+  const fetchUsers = async () => {
+    const query = gql`
+      query($first: Int, $after: String) {
+        users(first: $first, after: $after) {
+          id
+          name
+          avatar
+          email
+        }
+      }
+    `;
+
+    const { data } = await client.query(query, { first: 10, after: after.toString() }).toPromise();
+
+    if (data && data.users.length > 0) {
+      users = [...users, ...data.users];
+    }
+  };
+
+  onMount(fetchUsers);
+
+  function nextBatch() {
+    after += 10;
+    fetchUsers();
+    console.log("nextbatch executed", after);
+  }
+
 </script>
 
 <div class="w-full h-full overflow-scroll">
-	<div class="flex flex-col gap-4 items-center p-4">
-		{#if $result.fetching}
-			<Loader />
-		{:else if $result.data}
-			{#each $result.data.users as user (user.id)}
-				<User {user} />
-			{/each}
-		{/if}
-	</div>
+  <div class="flex flex-col gap-4 items-center p-4">
+    {#if users.length === 0}
+      <Loader />
+    {:else}
+      {#each users as user (user.id)}
+        <User {user} />
+      {/each}
+      <InfiniteScroll
+        elementScroll={window}
+        threshold={100}
+        hasMore={true}
+        on:loadMore={nextBatch}
+      />
+    {/if}
+    <button on:click={nextBatch}>Next page</button>
+  </div>
 </div>
