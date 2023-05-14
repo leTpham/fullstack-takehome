@@ -1,10 +1,11 @@
 <script lang="ts">
   import { cacheExchange, createClient, fetchExchange, gql } from '@urql/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   import Loader from 'components/Loader.svelte';
   import User from 'components/User.svelte';
   import type { UserType } from 'lib/types';
+  import { USER_BATCH_SIZE } from '../config';
 
   import InfiniteScroll from './InfiniteScroll.svelte';
 
@@ -15,6 +16,9 @@
 
   let after = 0;
   let users: UserType[] = [];
+  let isLoading = false;
+  let hasMore = true;
+  let timeoutId;
 
   const fetchUsers = async () => {
     const query = gql`
@@ -27,47 +31,56 @@
         }
       }
     `;
+    isLoading = true;
 
-    const { data } = await client.query(query, { first: 10, after: after.toString() }).toPromise();
-
+    const { data } = await client.query(query, { first: USER_BATCH_SIZE, after: after.toString() }).toPromise();
+    isLoading = false;
     if (data && data.users.length > 0) {
       users = [...users, ...data.users];
-	  console.log("users", users)
-	  console.log("data", data)
+      console.log("users", users);
+      console.log("data", data);
+    } else {
+      hasMore = false;
     }
   };
 
+  const fetchUsersWithTimeout = () => {
+	isLoading=true;
+    timeoutId = setTimeout(() => {
+      fetchUsers();
+    }, 1000);
+  };
+
   onMount(fetchUsers);
+  onDestroy(() => {
+    clearTimeout(timeoutId);
+  });
 
   function nextBatch() {
-    after += 10;
-    fetchUsers();
+    after += USER_BATCH_SIZE;
+    clearTimeout(timeoutId);
+    fetchUsersWithTimeout();
     console.log("nextbatch executed", after);
   }
-
 </script>
 
-<style>
-.container {
-	height: 100vh;
-	overflow:scroll;
-}
-</style>
-
 <div class="w-full h-full overflow-scroll">
-  <div class="flex flex-col gap-4 items-center p-4 container">
+  <div class="flex flex-col gap-4 items-center p-4 h-full w-full overflow-scroll">
     {#if users.length === 0}
       <Loader />
     {:else}
       {#each users as user (user.id)}
-        <User {user} />
+        <User {user} key={user.id} />
       {/each}
-
-      <InfiniteScroll
-        threshold={100}
-        hasMore={true}
-        on:loadMore={nextBatch}
-      />
+      {#if isLoading}
+        <Loader />
+      {:else if hasMore}
+        <InfiniteScroll
+          threshold={100}
+          hasMore={true}
+          on:loadMore={nextBatch}
+        />
+      {/if}
     {/if}
   </div>
 </div>

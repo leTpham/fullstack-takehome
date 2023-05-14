@@ -7,7 +7,6 @@ import { users } from '$lib/data';
 
 import schema from '$lib/schema.gql';
 import { USER_BATCH_SIZE } from '../../config';
-import { USER } from '$env/static/private';
 
 const yogaApp = createYoga<RequestEvent>({
 	schema: createSchema({
