@@ -13,7 +13,6 @@
 		url: '/graphql',
 		exchanges: [cacheExchange, fetchExchange]
 	});
-	console.log('client', client);
 	let after: number = 0; //keep track of id of last user loaded to offset query
 	let users: UserType[] = []; //array to store fetched users
 	let isLoading: boolean = false; //if a request is in progress
@@ -53,10 +52,10 @@
 		}
 	}
 
-	/** Fetch users with a delay of 1s -> to show spinner when scrolled to bottom of page*/
+	/** Fetch users with a delay of 0.5s -> to show spinner when scrolled to bottom of page*/
 	function fetchUsersWithTimeout() {
 		isLoading = true;
-		timeoutId = window.setTimeout(fetchUsers, 1000);
+		timeoutId = window.setTimeout(fetchUsers, 500);
 	}
 
 	//fetch the first batch of users on mount
