@@ -1,48 +1,50 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
 
+  //how close to the bottom the user needs to scroll before triggering the loadMore event
   export let threshold = 0;
-  export let horizontal = false;
-  export let elementScroll;
+
+  //whether there are more items to load.
   export let hasMore = true;
 
   const dispatch = createEventDispatcher();
+
+  //whether a loadMore event is already in progress.
   let isLoadMore = false;
+
   let component;
 
-  $: {
-    if (component || elementScroll) {
-      const element = elementScroll ? elementScroll : component.parentNode;
+  onMount(() => {
+    //the scrollable element.
+    const element = component.parentNode;
 
-      element.addEventListener("scroll", onScroll);
-      element.addEventListener("resize", onScroll);
-    }
-  }
+    function onScroll() {
+      //distance between the bottom of the scrollable element
+      // and the visible portion of the content.
+      const offset = element.scrollHeight - element.clientHeight - element.scrollTop;
 
-  const onScroll = e => {
-    const element = e.target;
-
-    const offset = horizontal
-      ? e.target.scrollWidth - e.target.clientWidth - e.target.scrollLeft
-      : e.target.scrollHeight - e.target.clientHeight - e.target.scrollTop;
-
-    if (offset <= threshold) {
-      if (!isLoadMore && hasMore) {
+      // Check if user has scrolled close enough to the bottom, and if
+      // a loadMore event is not already in progress, and if there are more
+      // items to load.
+      if (offset <= threshold && !isLoadMore && hasMore) {
         dispatch("loadMore");
+        // Set the flag to indicate that a loadMore event is in progress.
+        isLoadMore = true;
+      } else {
+        // Reset the flag when the user is not scrolling close to the bottom
+        // or if a loadMore event is already in progress.
+        isLoadMore = false;
       }
-      isLoadMore = true;
-    } else {
-      isLoadMore = false;
-    }
-  };
+    };
 
-  onDestroy(() => {
-    if (component || elementScroll) {
-      const element = elementScroll ? elementScroll : component.parentNode;
+    // Attach the scroll event listener to the scrollable element.
+    element.addEventListener("scroll", onScroll);
 
-      element.removeEventListener("scroll", null);
-      element.removeEventListener("resize", null);
-    }
+    // Return a cleanup function that removes the scroll event listener
+    // when the component is unmounted.
+    return () => {
+      element.removeEventListener("scroll", onScroll);
+    };
   });
 </script>
 
