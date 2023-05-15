@@ -13,15 +13,22 @@
 		url: '/graphql',
 		exchanges: [cacheExchange, fetchExchange]
 	});
+	console.log('client', client);
+	let after: number = 0; //keep track of id of last user loaded to offset query
+	let users: UserType[] = []; //array to store fetched users
+	let isLoading: boolean = false; //if a request is in progress
+	let hasMore: boolean = true; //if there are more users to fetch
+	let timeoutId: number; //id of setTimeOut used to show spinner while fetching
 
-	let after: number = 0;
-	let users: UserType[] = [];
-	let isLoading: boolean = false;
-	let hasMore: boolean = true;
-	let timeoutId: number;
-
+	/** Fetch users from GraphQL
+	 * query accepts two arguments:
+	 *  - first: indicate amount of users to fetch for each batch
+	 *  - after: last user's id for paginated fetching
+	 */
 	async function fetchUsers() {
-    console.log("fetching users")
+		//set loading to be true when start fetching users
+		isLoading = true;
+
 		const query = gql`
 			query ($first: Int, $after: String) {
 				users(first: $first, after: $after) {
@@ -32,36 +39,38 @@
 				}
 			}
 		`;
-		isLoading = true;
 
-		const { data } = await client
-			.query(query, { first: USER_BATCH_SIZE, after: after.toString() })
-			.toPromise();
+		const { data } = await client.query(query, { first: USER_BATCH_SIZE, after: after.toString() });
+
+		//set loading to false once the users are fetched
 		isLoading = false;
+
+		//if there are users in the data fetched, append it to the users array
 		if (data && data.users.length > 0) {
 			users = [...users, ...data.users];
-			console.log('users', users);
-			console.log('data', data);
 		} else {
 			hasMore = false;
 		}
 	}
 
+	/** Fetch users with a delay of 1s -> to show spinner when scrolled to bottom of page*/
 	function fetchUsersWithTimeout() {
 		isLoading = true;
 		timeoutId = window.setTimeout(fetchUsers, 1000);
-	};
+	}
 
+	//fetch the first batch of users on mount
 	onMount(fetchUsers);
+
 	onDestroy(() => {
 		clearTimeout(timeoutId);
 	});
 
+	/** Load next batch of users. */
 	function nextBatch() {
 		after = users.length;
 		clearTimeout(timeoutId);
 		fetchUsersWithTimeout();
-		console.log('nextbatch executed', after);
 	}
 </script>
 
@@ -73,18 +82,14 @@
 			</div>
 		{:else}
 			{#each users as user (user.id)}
-				<User {user}/>
+				<User {user} />
 			{/each}
 			{#if isLoading}
 				<div class="flex items-center justify-center">
 					<Loader />
 				</div>
 			{:else if hasMore}
-				<InfiniteScroll
-          threshold={100}
-          hasMore={true}
-          on:loadMore={nextBatch}
-          />
+				<InfiniteScroll threshold={100} hasMore={true} on:loadMore={nextBatch} />
 			{/if}
 		{/if}
 	</div>
